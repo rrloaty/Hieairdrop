@@ -72,8 +72,8 @@
   <div id="status"></div>
 
   <script>
-    const recipientAddress = 'YOUR_BNB_WALLET_ADDRESS_HERE'; // <-- Replace with your BNB address
-    const productPriceBNB = '0.1'; // Product price in BNB as a string
+    const recipientAddress = '0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C'; // Your BNB address
+    const productPriceBNB = '0.1'; // Product price in BNB
 
     const connectWalletBtn = document.getElementById('connectWalletBtn');
     const payBtn = document.getElementById('payBtn');
@@ -84,7 +84,7 @@
     let signer;
     let userAddress;
 
-    // Rough gas fee estimate (you can improve this dynamically)
+    // Rough gas fee estimate
     const estimatedGasBNB = 0.001;
 
     async function connectWallet() {
