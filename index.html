@@ -1,134 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WalletConnect BNB Payment Demo</title>
-<script src="https://unpkg.com/@walletconnect/web3modal@3.0.2/dist/browser.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<style>
-  body {
-    background: #121212;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 40px;
-  }
-  button {
-    background: #00ffc3;
-    border: none;
-    border-radius: 8px;
-    color: black;
-    font-weight: bold;
-    font-size: 18px;
-    padding: 14px 28px;
-    cursor: pointer;
-    margin: 10px;
-  }
-  button:disabled {
-    background: #555;
-    cursor: not-allowed;
-  }
-  #status {
-    margin-top: 20px;
-    font-size: 16px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pay with BNB</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+    }
+    h2 {
+      text-align: center;
+    }
+    button {
+      cursor: pointer;
+      background-color: #f0b90b;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 5px;
+      color: #222;
+      transition: background-color 0.3s ease;
+    }
+    button:hover:not(:disabled) {
+      background-color: #d39e00;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      min-height: 50px;
+    }
+    .price {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .wallet-info {
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      color: #555;
+      text-align: center;
+      word-break: break-all;
+    }
+  </style>
 </head>
 <body>
 
-<h1>Subscribe with 10 BNB Payment</h1>
+  <h2>Buy Product with BNB</h2>
+  <div class="price">Price: <strong><span id="priceBNB">0.1</span> BNB</strong></div>
 
-<button id="connectBtn">Connect Wallet</button><br />
-<button id="payBtn" disabled>Subscribe (Pay 10 BNB)</button>
+  <div style="text-align:center; margin-bottom: 15px;">
+    <button id="connectWalletBtn">Connect Wallet</button>
+  </div>
 
-<div id="status">Wallet not connected</div>
+  <div class="wallet-info" id="walletAddress">Wallet: Not connected</div>
 
-<script>
-(async () => {
-  const projectId = "81f700474cd5b9fb7fea7e00c2b821be"; // Your WalletConnect Project ID
-  const recipientAddress = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C"; // Your wallet address
-  const bnbPriceUSD = 300; // Approximate BNB price in USD for balance check (update if needed)
-  const requiredUSD = 10;   // Required USD amount to pay
-  const requiredBNB = requiredUSD / bnbPriceUSD; // Calculate required BNB amount (~0.0333 BNB)
+  <div style="text-align:center;">
+    <button id="payBtn" disabled>Pay Now</button>
+  </div>
 
-  const { Web3Modal } = window.Web3Modal;
-  const ethers = window.ethers;
+  <div id="status"></div>
 
-  const web3Modal = new Web3Modal({
-    projectId,
-    walletConnectVersion: 2,
-    themeMode: "dark",
-    chains: [
-      {
-        chainId: 56,
-        name: "Binance Smart Chain",
-        rpc: "https://bsc-dataseed.binance.org/",
-        nativeCurrency: { name: "Binance Coin", symbol: "BNB", decimals: 18 },
-        blockExplorerUrls: ["https://bscscan.com"],
-      },
-    ],
-  });
+  <script>
+    const recipientAddress = 'YOUR_BNB_WALLET_ADDRESS_HERE'; // <-- Replace with your BNB address
+    const productPriceBNB = '0.1'; // Product price in BNB as a string
 
-  let provider;
-  let signer;
-  let userAddress;
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const payBtn = document.getElementById('payBtn');
+    const statusDiv = document.getElementById('status');
+    const walletAddressDiv = document.getElementById('walletAddress');
 
-  const connectBtn = document.getElementById("connectBtn");
-  const payBtn = document.getElementById("payBtn");
-  const status = document.getElementById("status");
+    let provider;
+    let signer;
+    let userAddress;
 
-  connectBtn.onclick = async () => {
-    try {
-      const instance = await web3Modal.connect();
-      provider = new ethers.BrowserProvider(instance);
-      signer = await provider.getSigner();
-      userAddress = await signer.getAddress();
-      status.textContent = `Connected: ${userAddress}`;
-      connectBtn.disabled = true;
+    // Rough gas fee estimate (you can improve this dynamically)
+    const estimatedGasBNB = 0.001;
 
-      // Check user BNB balance
-      const balanceBigInt = await provider.getBalance(userAddress);
-      const balanceBNB = Number(ethers.formatEther(balanceBigInt));
-      status.textContent += ` | Balance: ${balanceBNB.toFixed(4)} BNB`;
-
-      if (balanceBNB >= requiredBNB) {
-        payBtn.disabled = false;
-        status.textContent += ` | You have enough balance to pay $${requiredUSD} (≈${requiredBNB.toFixed(5)} BNB)`;
-      } else {
-        payBtn.disabled = true;
-        status.textContent += ` | Insufficient balance to pay $${requiredUSD} (≈${requiredBNB.toFixed(5)} BNB)`;
-        alert(`Your BNB balance is too low. You need at least ≈${requiredBNB.toFixed(5)} BNB (~$${requiredUSD}).`);
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert('MetaMask or a compatible wallet is required.');
+        return;
       }
-    } catch (err) {
-      alert("Failed to connect wallet or user rejected.");
-      console.error(err);
-      status.textContent = "Connection failed.";
-    }
-  };
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
 
-  payBtn.onclick = async () => {
-    try {
-      payBtn.disabled = true;
-      status.textContent = "Sending payment transaction...";
-      const tx = await signer.sendTransaction({
-        to: recipientAddress,
-        value: ethers.parseEther(requiredBNB.toFixed(18)),
-        gasLimit: 21000,
-      });
-      status.textContent = "Transaction sent. Waiting for confirmation...";
-      await tx.wait();
-      alert("Payment successful! Thank you for subscribing.");
-      status.textContent = "Payment successful.";
-    } catch (err) {
-      alert("Transaction failed or was rejected.");
-      console.error(err);
-      status.textContent = "Payment failed.";
-      payBtn.disabled = false;
+        walletAddressDiv.textContent = `Wallet: ${userAddress}`;
+        connectWalletBtn.textContent = 'Wallet Connected';
+        connectWalletBtn.disabled = true;
+        payBtn.disabled = false;
+        statusDiv.textContent = '';
+      } catch (error) {
+        statusDiv.textContent = 'Wallet connection was rejected.';
+      }
     }
-  };
-})();
-</script>
+
+    async function checkBalance() {
+      if (!provider || !userAddress) return 0;
+      try {
+        const balanceBN = await provider.getBalance(userAddress);
+        return parseFloat(ethers.utils.formatEther(balanceBN));
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+        return 0;
+      }
+    }
+
+    async function sendPayment() {
+      statusDiv.textContent = 'Checking balance...';
+
+      const userBalance = await checkBalance();
+      const price = parseFloat(productPriceBNB);
+
+      if (userBalance < price + estimatedGasBNB) {
+        statusDiv.textContent = `Insufficient funds. You have ${userBalance.toFixed(5)} BNB but need at least ${(price + estimatedGasBNB).toFixed(5)} BNB (including gas fee).`;
+        return;
+      }
+
+      try {
+        statusDiv.textContent = 'Sending transaction... Please confirm in your wallet.';
+
+        const tx = await signer.sendTransaction({
+          to: recipientAddress,
+          value: ethers.utils.parseEther(productPriceBNB)
+        });
+
+        statusDiv.textContent = `Transaction sent! Tx Hash: ${tx.hash}`;
+        await tx.wait();
+
+        statusDiv.textContent = 'Payment confirmed! Thank you for your purchase.';
+        payBtn.disabled = true;
+      } catch (error) {
+        statusDiv.textContent = `Transaction failed: ${error.message}`;
+      }
+    }
+
+    connectWalletBtn.addEventListener('click', connectWallet);
+    payBtn.addEventListener('click', sendPayment);
+  </script>
 
 </body>
 </html>
